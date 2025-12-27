@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: poputchik_postgres
+    environment:
+      POSTGRES_DB: poputchik_bot
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot -d poputchik_bot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: poputchik_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .
+    container_name: poputchik_bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=postgresql+asyncpg://bot:${DB_PASSWORD:-password123}@postgres:5432/poputchik_bot
+      - REDIS_URL=redis://redis:6379/0
+      - CHANNEL_ID=${CHANNEL_ID}
+    command: python bot.py
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    container_name: poputchik_celery
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=postgresql+asyncpg://bot:${DB_PASSWORD:-password123}@postgres:5432/poputchik_bot
+      - REDIS_URL=redis://redis:6379/0
+      - CHANNEL_ID=${CHANNEL_ID}
+    command: celery -A celery_app worker --loglevel=info
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

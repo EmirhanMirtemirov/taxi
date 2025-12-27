@@ -1,0 +1,24 @@
+# Telegram Bot Framework
+aiogram==3.4.1
+
+# PostgreSQL
+asyncpg==0.29.0
+SQLAlchemy[asyncio]==2.0.25
+
+# Redis и Celery
+celery==5.3.4
+redis==5.0.1
+
+# Планировщик
+apscheduler==3.10.4
+
+# Утилиты
+python-dotenv==1.0.0
+pytz==2024.1
+openai==1.12.0
+
+# Миграции БД (опционально)
+alembic==1.13.1
+
+# Для типизации (Python 3.9 совместимость)
+typing-extensions>=4.0.0
