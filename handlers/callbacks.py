@@ -14,7 +14,7 @@ from services.channel import publish_to_channel
 from services.matching import find_matching_subscriptions, get_users_to_notify, log_notification, find_matching_posts
 from tasks.notifications import send_match_notification, schedule_rating_request
 from config import POST_LIFETIME_MINUTES, RATING_REQUEST_DELAY_HOURS
-from utils.helpers import format_local_time
+from utils.helpers import format_local_time, safe_answer_callback
 from keyboards import (
     get_contact_keyboard,
     get_back_to_menu_keyboard,
@@ -34,7 +34,7 @@ async def show_contact(callback: CallbackQuery, bot: Bot):
     """
     logger.info(f"🔔 CALLBACK CONTACT: data='{callback.data}', user={callback.from_user.id}, msg_id={callback.message.message_id if callback.message else None}")
     try:
-        await callback.answer("Обрабатываю...")
+        await safe_answer_callback(callback, "Обрабатываю...")
         
         parts = callback.data.split(":")
         logger.info(f"Обработка contact callback: {parts}, всего частей: {len(parts)}")
@@ -44,7 +44,7 @@ async def show_contact(callback: CallbackQuery, bot: Bot):
             author_user_id = int(parts[2])  # Это ID в нашей БД, не telegram_id
         except (IndexError, ValueError) as e:
             logger.error(f"Ошибка парсинга callback data: {e}, parts: {parts}")
-            await callback.answer("Ошибка данных", show_alert=True)
+            await safe_answer_callback(callback, "Ошибка данных", show_alert=True)
             return
         
         async with get_session() as session:
@@ -166,18 +166,18 @@ async def show_contact(callback: CallbackQuery, bot: Bot):
         
     except Exception as e:
         logger.error(f"Ошибка в show_contact: {e}", exc_info=True)
-        await callback.answer("Произошла ошибка", show_alert=True)
+        await safe_answer_callback(callback, "Произошла ошибка", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("recreate:"))
 async def recreate_post(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """Пересоздать объявление с теми же данными"""
-    await callback.answer("Создаю...")
+    await safe_answer_callback(callback, "Создаю...")
     
     try:
         post_id = int(callback.data.split(":")[1])
     except (IndexError, ValueError):
-        await callback.answer("Ошибка данных", show_alert=True)
+        await safe_answer_callback(callback, "Ошибка данных", show_alert=True)
         return
     
     async with get_session() as session:
@@ -368,7 +368,7 @@ async def recreate_post(callback: CallbackQuery, state: FSMContext, bot: Bot):
 @router.callback_query(F.data == "post:pause")
 async def pause_current_post(callback: CallbackQuery, bot: Bot):
     """Приостановить текущее объявление (из сообщения после публикации)"""
-    await callback.answer()
+    await safe_answer_callback(callback)
     
     # Находим последнее активное объявление пользователя
     async with get_session() as session:
@@ -388,7 +388,7 @@ async def pause_current_post(callback: CallbackQuery, bot: Bot):
         post = post_result.scalar_one_or_none()
         
         if not post:
-            await callback.answer("Нет активных объявлений", show_alert=True)
+            await safe_answer_callback(callback, "Нет активных объявлений", show_alert=True)
             return
         
         from services.channel import delete_channel_message
@@ -418,7 +418,7 @@ async def pause_current_post(callback: CallbackQuery, bot: Bot):
 @router.callback_query(F.data == "post:delete")
 async def delete_current_post(callback: CallbackQuery, bot: Bot):
     """Удалить текущее объявление"""
-    await callback.answer()
+    await safe_answer_callback(callback)
     
     async with get_session() as session:
         user_query = select(User).where(User.telegram_id == callback.from_user.id)
@@ -437,7 +437,7 @@ async def delete_current_post(callback: CallbackQuery, bot: Bot):
         post = post_result.scalar_one_or_none()
         
         if not post:
-            await callback.answer("Нет объявлений для удаления", show_alert=True)
+            await safe_answer_callback(callback, "Нет объявлений для удаления", show_alert=True)
             return
         
         from services.channel import delete_channel_message

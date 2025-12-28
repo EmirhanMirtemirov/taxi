@@ -2,6 +2,11 @@
 
 from datetime import datetime, timedelta
 from typing import Optional
+from aiogram.types import CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
+import logging
+
+logger = logging.getLogger(__name__)
 import pytz
 
 from config import TIMEZONE
@@ -74,6 +79,35 @@ def truncate_text(text: str, max_length: int = 20) -> str:
     if len(text) <= max_length:
         return text
     return text[:max_length - 3] + "..."
+
+
+async def safe_answer_callback(callback: CallbackQuery, text: str = None, show_alert: bool = False) -> bool:
+    """
+    Безопасно отвечает на callback query.
+    Обрабатывает ошибку истечения callback (query is too old).
+    
+    Args:
+        callback: CallbackQuery объект
+        text: Текст ответа (опционально)
+        show_alert: Показывать ли alert вместо toast
+        
+    Returns:
+        True если ответ успешен, False если callback истёк
+    """
+    try:
+        await callback.answer(text=text, show_alert=show_alert)
+        return True
+    except TelegramBadRequest as e:
+        if "too old" in str(e) or "query ID is invalid" in str(e):
+            # Callback истёк - это нормально, просто логируем
+            logger.debug(f"Callback query истёк: {callback.data}")
+            return False
+        else:
+            # Другая ошибка - пробрасываем дальше
+            raise
+    except Exception as e:
+        logger.warning(f"Ошибка при ответе на callback: {e}")
+        return False
 
 
 def format_local_time(utc_datetime: datetime, format_str: str = "%H:%M") -> str:

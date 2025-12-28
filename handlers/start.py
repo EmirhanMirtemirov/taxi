@@ -112,7 +112,8 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
 @router.callback_query(F.data == "agreement:accept", Agreement.waiting_agreement)
 async def accept_agreement(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """Пользователь согласился с правилами"""
-    await callback.answer()
+    from utils.helpers import safe_answer_callback
+    await safe_answer_callback(callback)
     
     # Удаляем сообщение с предупреждением
     try:
@@ -141,7 +142,8 @@ async def accept_agreement(callback: CallbackQuery, state: FSMContext, bot: Bot)
 @router.callback_query(F.data == "agreement:decline", Agreement.waiting_agreement)
 async def decline_agreement(callback: CallbackQuery, state: FSMContext):
     """Пользователь отказался от согласия"""
-    await callback.answer("❌ Без согласия доступ к сервису невозможен", show_alert=True)
+    from utils.helpers import safe_answer_callback
+    await safe_answer_callback(callback, "❌ Без согласия доступ к сервису невозможен", show_alert=True)
     
     await callback.message.edit_text(
         "❌ <b>Доступ запрещён</b>\n\n"
@@ -302,7 +304,8 @@ async def show_main_menu(message: Message, user: User, session):
 @router.callback_query(F.data == "main_menu")
 async def callback_main_menu(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """Возврат в главное меню через callback"""
-    await callback.answer()
+    from utils.helpers import safe_answer_callback
+    await safe_answer_callback(callback)
     # Очищаем все предыдущие сообщения при возврате в главное меню
     await clean_chat(bot, callback.from_user.id, state)
     await state.clear()
@@ -329,7 +332,8 @@ async def callback_main_menu(callback: CallbackQuery, state: FSMContext, bot: Bo
 @router.callback_query(F.data == "help")
 async def show_help(callback: CallbackQuery):
     """Показать помощь"""
-    await callback.answer()
+    from utils.helpers import safe_answer_callback
+    await safe_answer_callback(callback)
     
     help_text = (
         "❓ <b>Как пользоваться ботом</b>\n\n"
