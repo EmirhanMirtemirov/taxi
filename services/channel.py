@@ -28,28 +28,28 @@ def format_post_for_channel(post: Post, author: User) -> str:
     # Определяем тип объявления
     if post.role == "driver":
         role_emoji = "🚗"
-        role_text = "ВОДИТЕЛЬ"
-        seats_line = f"🪑 Мест: {post.seats}\n" if post.seats else ""
+        role_text = "Водитель"
+        seats_line = f"Мест: {post.seats}\n" if post.seats else ""
     else:
         role_emoji = "🚶"
-        role_text = "ПАССАЖИР"
+        role_text = "Пассажир"
         seats_line = ""
     
-    # Форматируем время истечения (конвертируем из UTC в локальный часовой пояс)
-    expires_time = format_local_time(post.expires_at)
-    
-    # Форматируем рейтинг
-    rating_display = f"{float(author.rating):.1f}"
+    # Форматируем время отправления
+    departure_time = post.departure_time or "Не указано"
     
     text = (
-        f"{role_emoji} <b>{role_text}</b>\n\n"
-        f"📍 {post.from_place} → {post.to_place}\n"
-        f"⏰ {post.departure_time or 'Не указано'}\n"
-        f"{seats_line}"
-        f"💰 {post.price} сом\n"
-        f"⭐ Рейтинг: {rating_display}\n\n"
-        f"⏰ Активно до: {expires_time}"
+        f"{role_emoji} КТО: {role_text}\n"
+        f"📍 Откуда: {post.from_place}\n"
+        f"📍 Куда: {post.to_place}\n"
+        f"⏰ Время: {departure_time}\n"
     )
+    
+    # Добавляем количество мест только для водителей
+    if seats_line:
+        text += seats_line
+    
+    text += f"💰 Цена: {post.price} сом"
     
     return text
 
