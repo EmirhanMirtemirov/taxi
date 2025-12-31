@@ -10,7 +10,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.exceptions import TelegramNetworkError
+from aiogram.exceptions import TelegramNetworkError, TelegramBadRequest
 
 from config import BOT_TOKEN, CHANNEL_ID
 from database.db import init_db, close_db
@@ -66,15 +66,23 @@ async def main():
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
     
-    # Глобальный обработчик сетевых ошибок (таймауты)
+    # Глобальный обработчик ошибок
     @dp.errors()
-    async def error_handler(event, exception):
+    async def error_handler(update, exception):
         """Глобальный обработчик ошибок - предотвращает падение бота при сетевых проблемах"""
         if isinstance(exception, TelegramNetworkError):
             # Игнорируем сетевые ошибки (таймауты) - они не критичны
             # aiogram автоматически переподключится
             logger.warning(f"⚠️ Сетевая ошибка (таймаут) при обработке обновления: {exception}")
             return True  # Возвращаем True чтобы aiogram не логировал как критичную ошибку
+        elif isinstance(exception, TelegramBadRequest):
+            # Игнорируем ошибки типа "message to edit not found" - сообщение уже удалено
+            if "message to edit not found" in str(exception) or "message not found" in str(exception):
+                logger.debug(f"⚠️ Сообщение уже удалено или не найдено: {exception}")
+                return True
+            # Для других BadRequest - логируем
+            logger.warning(f"⚠️ BadRequest: {exception}")
+            return True
         # Для других ошибок - логируем
         logger.error(f"❌ Необработанная ошибка: {exception}", exc_info=True)
         return False  # Позволяем aiogram логировать другие ошибки
