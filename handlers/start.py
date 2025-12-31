@@ -14,6 +14,7 @@ from database.db import get_session
 from database.models import User, Post
 from utils.message_cleaner import clean_chat
 from utils.helpers import format_local_time
+from utils.retry_utils import safe_message_answer, safe_callback_message_edit
 from keyboards import get_role_keyboard, get_main_menu_keyboard, get_remove_keyboard, get_agreement_keyboard
 from states import Agreement
 
@@ -102,23 +103,12 @@ async def cmd_start(message: Message, state: FSMContext, bot: Bot):
             )
             
             try:
-                await message.answer(
+                await safe_message_answer(
+                    message,
                     agreement_text,
                     parse_mode="HTML",
                     reply_markup=get_agreement_keyboard()
                 )
-            except TelegramNetworkError as e:
-                logger.warning(f"Сетевая ошибка при отправке соглашения пользователю {message.from_user.id}: {e}")
-                # Пробуем повторить запрос один раз
-                try:
-                    await message.answer(
-                        agreement_text,
-                        parse_mode="HTML",
-                        reply_markup=get_agreement_keyboard()
-                    )
-                except TelegramNetworkError as e2:
-                    logger.error(f"Повторная ошибка при отправке соглашения: {e2}")
-                    return
             except Exception as e:
                 logger.error(f"Ошибка при отправке соглашения пользователю {message.from_user.id}: {e}", exc_info=True)
                 return
@@ -147,23 +137,12 @@ async def accept_agreement(callback: CallbackQuery, state: FSMContext, bot: Bot)
     )
     
     try:
-        await callback.message.answer(
+        await safe_callback_message_edit(
+            callback,
             welcome_text,
             parse_mode="HTML",
             reply_markup=get_role_keyboard()
         )
-    except TelegramNetworkError as e:
-        logger.warning(f"Сетевая ошибка при отправке приветствия пользователю {callback.from_user.id}: {e}")
-        # Пробуем повторить запрос один раз
-        try:
-            await callback.message.answer(
-                welcome_text,
-                parse_mode="HTML",
-                reply_markup=get_role_keyboard()
-            )
-        except TelegramNetworkError as e2:
-            logger.error(f"Повторная ошибка при отправке приветствия: {e2}")
-            return
     except Exception as e:
         logger.error(f"Ошибка при отправке приветствия пользователю {callback.from_user.id}: {e}", exc_info=True)
         return
