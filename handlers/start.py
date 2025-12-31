@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramNetworkError
 from sqlalchemy import select
 from typing import Tuple
+import asyncio
 import logging
 
 from database.db import get_session
@@ -281,20 +282,39 @@ async def get_main_menu_text(user_name: str, user: User, session) -> Tuple[str, 
 
 
 async def show_main_menu(message: Message, user: User, session):
-    """Показать главное меню"""
+    """Показать главное меню с улучшенной обработкой ошибок"""
     menu_text, has_active_post = await get_main_menu_text(message.from_user.first_name, user, session)
     
-    try:
-        await message.answer(
-            menu_text,
-            parse_mode="HTML",
-            reply_markup=get_main_menu_keyboard(user.role, has_active_post)
-        )
-    except TelegramNetworkError as e:
-        logger.warning(f"Сетевая ошибка при отправке главного меню пользователю {message.from_user.id}: {e}")
-        # Не падаем, просто логируем - aiogram сам переподключится
-    except Exception as e:
-        logger.error(f"Ошибка при отправке главного меню пользователю {message.from_user.id}: {e}", exc_info=True)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            await message.answer(
+                menu_text,
+                parse_mode="HTML",
+                reply_markup=get_main_menu_keyboard(user.role, has_active_post)
+            )
+            break  # Успешно отправлено
+        except TelegramNetworkError as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Сетевая ошибка при отправке главного меню (попытка {attempt + 1}/{max_retries}): {e}")
+                await asyncio.sleep(1)  # Пауза перед повторной попыткой
+                continue
+            else:
+                logger.error(f"Не удалось отправить главное меню после {max_retries} попыток: {e}")
+                # Отправляем упрощенную версию без клавиатуры
+                try:
+                    await message.answer(
+                        "🏠 Главное меню\n"
+                        f"Привет, {message.from_user.first_name}!\n"
+                        f"Роль: {'🚗 Водитель' if user.role == 'driver' else '🚶 Пассажир'}\n"
+                        f"⭐ Рейтинг: {float(user.rating):.1f}",
+                        parse_mode="HTML"
+                    )
+                except Exception as fallback_error:
+                    logger.error(f"Критическая ошибка при отправке fallback сообщения: {fallback_error}")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке главного меню пользователю {message.from_user.id}: {e}", exc_info=True)
+            break
 
 
 
