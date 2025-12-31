@@ -165,9 +165,11 @@ async def decline_agreement(callback: CallbackQuery, state: FSMContext):
 
 async def show_post_from_channel(message: Message, post_id: int):
     """Показать информацию об объявлении из канала"""
+    user_id = message.from_user.id
+    
     async def _get_post_info(session):
         # Получаем текущего пользователя
-        user_query = select(User).where(User.telegram_id == message.from_user.id)
+        user_query = select(User).where(User.telegram_id == user_id)
         user_result = await session.execute(user_query)
         user = user_result.scalars().first()
         
@@ -191,7 +193,7 @@ async def show_post_from_channel(message: Message, post_id: int):
     
     try:
         async with get_session() as session:
-            user, post, author = await retry_on_database_error(_get_post_info, session)
+            user, post, author = await retry_on_database_error(_get_post_info, session=session)
     except Exception as e:
         logger.error(f"Ошибка при получении данных для поста {post_id}: {e}")
         await message.answer("❌ Не удалось загрузить информацию об объявлении. Попробуйте позже.")
