@@ -57,7 +57,8 @@ async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot
         return user, active_post
     
     try:
-        user, active_post = await retry_on_database_error(_check_active_post)
+        async with get_session() as session:
+            user, active_post = await retry_on_database_error(_check_active_post, session)
     except Exception as e:
         logger.error(f"Ошибка при проверке активного объявления: {e}")
         await callback.answer("❌ Ошибка при проверке объявлений. Попробуйте позже.", show_alert=True)
