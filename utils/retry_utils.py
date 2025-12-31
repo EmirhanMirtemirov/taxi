@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from typing import Callable, Any
-from aiogram.exceptions import TelegramNetworkError
+from aiogram.exceptions import TelegramNetworkError, TelegramBadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,49 @@ async def safe_callback_message_edit(callback, text: str, **kwargs) -> bool:
             **kwargs
         )
         return True
+    except (TelegramBadRequest, TelegramNetworkError) as e:
+        logger.warning(f"Не удалось отредактировать сообщение для пользователя {callback.from_user.id}: {e}")
+        # Если нельзя отредактировать, отправляем новое сообщение
+        try:
+            await callback.message.answer(text, **kwargs)
+            return True
+        except Exception as e2:
+            logger.error(f"Не удалось отправить новое сообщение: {e2}")
+            return False
     except Exception as e:
-        logger.error(f"Не удалось отредактировать сообщение для пользователя {callback.from_user.id}: {e}")
+        logger.error(f"Неожиданная ошибка при редактировании сообщения: {e}")
+        return False
+
+
+async def safe_message_edit(message, text: str, **kwargs) -> bool:
+    """
+    Безопасное редактирование сообщения с повторными попытками
+    
+    Args:
+        message: Объект сообщения aiogram
+        text: Новый текст сообщения
+        **kwargs: Дополнительные параметры для edit_text()
+    
+    Returns:
+        True если успешно, False если все попытки неудачны
+    """
+    try:
+        await retry_on_network_error(
+            message.edit_text,
+            max_retries=2,
+            text=text,
+            **kwargs
+        )
+        return True
+    except (TelegramBadRequest, TelegramNetworkError) as e:
+        logger.warning(f"Не удалось отредактировать сообщение: {e}")
+        # Если нельзя отредактировать, отправляем новое сообщение
+        try:
+            await message.answer(text, **kwargs)
+            return True
+        except Exception as e2:
+            logger.error(f"Не удалось отправить новое сообщение: {e2}")
+            return False
+    except Exception as e:
+        logger.error(f"Неожиданная ошибка при редактировании сообщения: {e}")
         return False

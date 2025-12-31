@@ -17,6 +17,7 @@ from services.matching import find_matching_subscriptions, get_users_to_notify, 
 from tasks.notifications import send_match_notification
 from config import MAX_PRICE, POST_LIFETIME_MINUTES
 from utils.message_cleaner import add_message_to_delete, clean_chat
+from utils.retry_utils import safe_callback_message_edit
 from keyboards import (
     get_cancel_keyboard,
     get_back_cancel_keyboard,
@@ -64,7 +65,8 @@ async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot
         
         if active_post:
             # У пользователя уже есть активное объявление
-            await callback.message.edit_text(
+            await safe_callback_message_edit(
+                callback,
                 f"⚠️ <b>У вас уже есть активное объявление</b>\n\n"
                 f"📍 {active_post.from_place} → {active_post.to_place}\n"
                 f"🕐 {active_post.departure_time}\n"
