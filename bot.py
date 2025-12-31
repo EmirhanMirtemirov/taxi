@@ -73,7 +73,7 @@ async def main():
         if isinstance(exception, TelegramNetworkError):
             # Игнорируем сетевые ошибки (таймауты) - они не критичны
             # aiogram автоматически переподключится
-            logger.warning(f"⚠️ Сетевая ошибка (таймаут) при обработке обновления: {exception.message}")
+            logger.warning(f"⚠️ Сетевая ошибка (таймаут) при обработке обновления: {exception}")
             return True  # Возвращаем True чтобы aiogram не логировал как критичную ошибку
         # Для других ошибок - логируем
         logger.error(f"❌ Необработанная ошибка: {exception}", exc_info=True)
