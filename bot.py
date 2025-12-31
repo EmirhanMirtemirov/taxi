@@ -16,7 +16,6 @@ from config import BOT_TOKEN, CHANNEL_ID
 from database.db import init_db, close_db
 from handlers import (
     start_router,
-    onboarding_router,
     registration_router,
     post_router,
     subscriptions_router,
@@ -86,7 +85,6 @@ async def main():
         
         # Регистрация роутеров (порядок важен!)
         dp.include_router(start_router)
-        dp.include_router(onboarding_router)
         dp.include_router(registration_router)
         dp.include_router(post_router)
         dp.include_router(subscriptions_router)
