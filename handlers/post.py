@@ -37,9 +37,11 @@ logger = logging.getLogger(__name__)
 @router.callback_query(F.data == "create_post")
 async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot):
     """Начало создания объявления - проверка активных объявлений"""
+    user_id = callback.from_user.id
+    
     async def _check_active_post(session):
         # Получаем пользователя
-        user_query = select(User).where(User.telegram_id == callback.from_user.id)
+        user_query = select(User).where(User.telegram_id == user_id)
         user_result = await session.execute(user_query)
         user = user_result.scalars().first()
         
@@ -58,7 +60,7 @@ async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot
     
     try:
         async with get_session() as session:
-            user, active_post = await retry_on_database_error(_check_active_post, session)
+            user, active_post = await retry_on_database_error(_check_active_post, session=session)
     except Exception as e:
         logger.error(f"Ошибка при проверке активного объявления: {e}")
         await callback.answer("❌ Ошибка при проверке объявлений. Попробуйте позже.", show_alert=True)
