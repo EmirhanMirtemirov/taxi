@@ -190,7 +190,8 @@ async def show_post_from_channel(message: Message, post_id: int):
         return user, post, author
     
     try:
-        user, post, author = await retry_on_database_error(_get_post_info)
+        async with get_session() as session:
+            user, post, author = await retry_on_database_error(_get_post_info, session)
     except Exception as e:
         logger.error(f"Ошибка при получении данных для поста {post_id}: {e}")
         await message.answer("❌ Не удалось загрузить информацию об объявлении. Попробуйте позже.")
