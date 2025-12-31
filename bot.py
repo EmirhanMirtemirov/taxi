@@ -85,43 +85,41 @@ async def main():
         logger.warning(f"⚠️ Не удалось удалить webhook (это не критично): {e}")
         # Продолжаем запуск даже если не удалось удалить вебхук
     
+    # Получаем информацию о боте
     try:
-        # Получаем информацию о боте
         bot_info = await bot.get_me()
         logger.info(f"✅ Бот запущен: @{bot_info.username} (ID: {bot_info.id})")
-        
     except Exception as e:
         logger.error(f"❌ Не удалось получить информацию о боте: {e}")
         return
     
-    try:
-        # Отправляем закрепленное сообщение с кнопкой в канал
-        if CHANNEL_ID:
-            try:
-                from services.channel import send_pinned_menu_message
-                pinned_msg_id = await send_pinned_menu_message(bot)
-                if pinned_msg_id:
-                    logger.info(f"✅ Закрепленное сообщение с кнопкой отправлено в канал (msg_id={pinned_msg_id})")
-            except Exception as e:
-                logger.warning(f"⚠️ Ошибка при отправке закрепленного сообщения: {e}")
-                logger.info("💡 Убедитесь, что бот является администратором канала")
-        
-        logger.info("Продолжаем запуск бота...")
-        logger.info("Проверка подключения к Telegram API...")
-        
-        # Запуск polling
-        await dp.start_polling(bot)
-        
-    except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
-        raise
+    # Отправляем закрепленное сообщение с кнопкой в канал
+    if CHANNEL_ID:
+        try:
+            from services.channel import send_pinned_menu_message
+            pinned_msg_id = await send_pinned_menu_message(bot)
+            if pinned_msg_id:
+                logger.info(f"✅ Закрепленное сообщение с кнопкой отправлено в канал (msg_id={pinned_msg_id})")
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка при отправке закрепленного сообщения: {e}")
+            logger.info("💡 Убедитесь, что бот является администратором канала")
     
-    finally:
-        # Корректное завершение
-        stop_expiration_worker()
-        await close_db()
-        await bot.session.close()
-        logger.info("Бот остановлен")
+    logger.info("Продолжаем запуск бота...")
+    logger.info("Проверка подключения к Telegram API...")
+    
+    # Запуск polling
+    await dp.start_polling(bot)
+        
+except Exception as e:
+    logger.error(f"Ошибка при запуске бота: {e}")
+    raise
+    
+finally:
+    # Корректное завершение
+    stop_expiration_worker()
+    await close_db()
+    await bot.session.close()
+    logger.info("Бот остановлен")
 
 
 if __name__ == "__main__":
