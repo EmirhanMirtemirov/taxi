@@ -65,8 +65,14 @@ async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot
         
         if active_post:
             # У пользователя уже есть активное объявление
-            await safe_callback_message_edit(
-                callback,
+            # Удаляем предыдущее сообщение
+            try:
+                await callback.message.delete()
+            except:
+                pass
+            
+            # Отправляем новое сообщение с информацией о существующем объявлении
+            await callback.message.answer(
                 f"⚠️ <b>У вас уже есть активное объявление</b>\n\n"
                 f"📍 {active_post.from_place} → {active_post.to_place}\n"
                 f"🕐 {active_post.departure_time}\n"
@@ -84,12 +90,6 @@ async def start_create_post(callback: CallbackQuery, state: FSMContext, bot: Bot
             user_phone=user.phone,
             user_rating=str(user.rating)
         )
-    
-    # Удаляем предыдущее сообщение
-    try:
-        await callback.message.delete()
-    except:
-        pass
     
     # Шаг 1: Откуда
     msg = await callback.message.answer(

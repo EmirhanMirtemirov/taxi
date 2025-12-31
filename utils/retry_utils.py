@@ -96,8 +96,20 @@ async def safe_callback_message_edit(callback, text: str, **kwargs) -> bool:
         )
         return True
     except (TelegramBadRequest, TelegramNetworkError) as e:
-        logger.warning(f"Не удалось отредактировать сообщение для пользователя {callback.from_user.id}: {e}")
-        # Если нельзя отредактировать, отправляем новое сообщение
+        error_msg = str(e)
+        
+        # Если сообщение не найдено или нельзя редактировать
+        if "message to edit not found" in error_msg or "message can't be edited" in error_msg:
+            logger.warning(f"Сообщение нельзя отредактировать для пользователя {callback.from_user.id}: {e}")
+            # Показываем ошибку через answer (уведомление)
+            try:
+                await callback.answer("⚠️ Не удалось обновить сообщение. Попробуйте заново.", show_alert=True)
+            except:
+                pass  # Игнорируем ошибки answer
+            return False
+        
+        # Другие ошибки - пробуем отправить новое сообщение
+        logger.warning(f"Ошибка редактирования сообщения для пользователя {callback.from_user.id}: {e}")
         try:
             await callback.message.answer(text, **kwargs)
             return True
@@ -130,8 +142,20 @@ async def safe_message_edit(message, text: str, **kwargs) -> bool:
         )
         return True
     except (TelegramBadRequest, TelegramNetworkError) as e:
-        logger.warning(f"Не удалось отредактировать сообщение: {e}")
-        # Если нельзя отредактировать, отправляем новое сообщение
+        error_msg = str(e)
+        
+        # Если сообщение не найдено или нельзя редактировать
+        if "message to edit not found" in error_msg or "message can't be edited" in error_msg:
+            logger.warning(f"Сообщение нельзя отредактировать: {e}")
+            # Показываем ошибку через answer (уведомление)
+            try:
+                await message.answer("⚠️ Не удалось обновить сообщение. Попробуйте заново.")
+            except:
+                pass  # Игнорируем ошибки answer
+            return False
+        
+        # Другие ошибки - пробуем отправить новое сообщение
+        logger.warning(f"Ошибка редактирования сообщения: {e}")
         try:
             await message.answer(text, **kwargs)
             return True
