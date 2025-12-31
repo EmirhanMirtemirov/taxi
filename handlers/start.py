@@ -134,8 +134,8 @@ async def accept_agreement(callback: CallbackQuery, state: FSMContext, bot: Bot)
     await callback.message.answer(
         welcome_text,
         parse_mode="HTML",
-                reply_markup=get_role_keyboard()
-            )
+        reply_markup=get_role_keyboard()
+    )
     await state.clear()
 
 
