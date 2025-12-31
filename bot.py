@@ -95,11 +95,18 @@ async def main():
                 logger.warning(f"⚠️ Ошибка при отправке закрепленного сообщения: {e}")
                 logger.info("💡 Убедитесь, что бот является администратором канала")
         
-        # Запуск polling
-        await dp.start_polling(bot)
+        # Запуск polling с настройками для надежности
+        logger.info("Запуск polling для получения обновлений...")
+        await dp.start_polling(
+            bot,
+            allowed_updates=["message", "callback_query", "edited_message"],
+            close_bot_session=False
+        )
         
+    except KeyboardInterrupt:
+        logger.info("Получен сигнал остановки")
     except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
+        logger.error(f"Критическая ошибка при работе бота: {e}", exc_info=True)
         raise
     
     finally:
